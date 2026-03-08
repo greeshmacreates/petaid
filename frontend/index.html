@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐾 PetAid — Emergency First Aid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-tab active" id="tab-home" onclick="showTab('home')">
+    <span class="tab-icon">🏠</span>Home
+  </button>
+  <button class="nav-tab" id="tab-guide" onclick="showTab('guide')">
+    <span class="tab-icon">📋</span>Guide
+  </button>
+  <button class="nav-tab" id="tab-kit" onclick="showTab('kit')">
+    <span class="tab-icon">🧰</span>Kit
+  </button>
+  <button class="nav-tab" id="tab-profile" onclick="showTab('profile')">
+    <span class="tab-icon">👤</span>Profile
+  </button>
+</nav>
+
+<!-- SOS FLOAT -->
+<button id="sos-float" onclick="openSOS()">🆘</button>
+
+<!-- SOS MODAL -->
+<div id="sos-modal" style="display:none">
+  <div class="modal-overlay" onclick="closeSOS()">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-title">🆘 Emergency Contacts</div>
+      <div class="modal-sub">Tap a number to call immediately</div>
+      <a href="tel:911" class="modal-call" style="background:rgba(255,59,78,.12);border-color:rgba(255,59,78,.4);color:#fff">📞 Emergency Services — 911</a>
+      <a href="tel:18884267387" class="modal-call" style="background:rgba(255,149,0,.1);border-color:rgba(255,149,0,.3);color:#FF9500">☠️ ASPCA Poison Control — 1-888-426-7387</a>
+      <a href="tel:18009871688" class="modal-call" style="background:rgba(155,89,255,.1);border-color:rgba(155,89,255,.3);color:#9B59FF">🐾 Pet Poison Helpline — 1-800-987-1688</a>
+      <div id="sos-saved-vets"></div>
+      <button class="modal-close" onclick="closeSOS()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- API KEY MODAL -->
+<div id="apikey-modal" style="display:none">
+  <div class="modal-overlay" onclick="">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-title">🔑 API Key Required</div>
+      <div class="modal-sub">Enter your Gemini API key to get AI-generated first-aid steps. It's stored only in your browser.</div>
+      <input class="text-input" id="apikey-input" placeholder="AIza..." style="margin-bottom:12px;font-family:monospace;font-size:13px" />
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#5C9CFF">aistudio.google.com</a>. Without it, you'll still get built-in emergency steps.
+      </div>
+      <button class="save-btn" style="margin-bottom:10px" onclick="saveApiKey()">✓ Save & Continue</button>
+      <button class="modal-close" onclick="skipApiKey()">Continue without AI (use built-in steps)</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP WRAPPER -->
+<div class="app">
+
+<!-- ══ HOME SCREEN ══ -->
+<div id="screen-home" class="screen active">
+  <div class="top-bar">
+    <div class="logo-wrap">
+      <div class="logo">🐾 PetAid</div>
+      <div class="logo-sub">Emergency First Aid</div>
+    </div>
+    <div class="top-actions">
+      <div class="live-dot"></div>
+    </div>
+  </div>
+
+  <div class="hero-title">What's<br>happening<br>right now?</div>
+  <div class="hero-sub">Select your pet, then the emergency — guide starts automatically.</div>
+
+  <div class="sec-label" style="margin-top:4px">Your Pet</div>
+  <div class="pet-row" id="pet-row"></div>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="e-search" placeholder="Search emergency..." oninput="filterEmergencies()" />
+  </div>
+  <div class="filter-row" id="filter-row"></div>
+
+  <div id="emergency-list"></div>
+
+  <div id="sel-summary" style="display:none" class="sel-summary">
+    <span class="sel-text" id="sel-text"></span>
+    <span class="sev-badge" id="sel-sev"></span>
+  </div>
+
+  <button class="cta-btn" id="start-btn" disabled onclick="startGuide()">🚨 START EMERGENCY GUIDE</button>
+</div>
+
+<!-- ══ GUIDE SCREEN ══ -->
+<div id="screen-guide" class="screen">
+  <div class="guide-top">
+    <button class="back-btn" onclick="showTab('home')">← Back</button>
+    <div class="guide-controls">
+      <div class="timer-badge" id="timer">⏱ 00:00</div>
+      <button class="voice-pill on" id="voice-btn" onclick="toggleVoice()">🔊 Voice On</button>
+      <button class="voice-pill off" id="vox-btn" onclick="toggleVoxMode()" title="Real-time voice conversation">🎙️ Talk</button>
+    </div>
+  </div>
+  <div class="e-banner" id="guide-banner">
+    <div>
+      <div class="banner-title" id="banner-title">—</div>
+      <div class="banner-sub" id="banner-sub">—</div>
+    </div>
+    <span class="sev-badge" id="banner-sev"></span>
+  </div>
+  <div class="progress-wrap" id="prog-wrap" style="display:none">
+    <div class="progress-text" id="prog-text"></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+  </div>
+  <div id="guide-loading" class="loading-wrap">
+    <div class="paw-spinner"><div class="paw-dot"></div><div class="paw-dot"></div><div class="paw-dot"></div><div class="paw-dot"></div></div>
+    <div class="loading-title">Preparing your emergency guide…</div>
+    <div class="loading-tip">
+      <div class="tip-label">While you wait</div>
+      <div class="tip-text" id="tip-text">Keep your pet as calm and still as possible.</div>
+    </div>
+  </div>
+  <div id="steps-container" style="display:none"></div>
+  <div id="guide-nav" style="display:none">
+    <div class="nav-row">
+      <button class="nav-btn prev" id="prev-btn" onclick="goStep(-1)">← Prev</button>
+      <button class="nav-btn next" id="next-btn" onclick="goStep(1)">Next Step →</button>
+    </div>
+    <div class="vet-quick-row">
+      <button class="vet-quick-btn" style="background:linear-gradient(135deg,#186A35,#0F4520);border-color:#22C55E;color:#fff" onclick="showTab('vets')">🏥 Find Vet</button>
+      <span id="guide-vet-call"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VETS SCREEN ══ -->
+<div id="screen-vets" class="screen">
+  <div class="guide-top">
+    <button class="back-btn" onclick="showTab('guide')">← Back to Guide</button>
+  </div>
+  <div class="page-title">🏥 Get to a Vet</div>
+  <div class="page-sub">Every second counts. Call ahead so they can prepare for your arrival.</div>
+  <div id="saved-vets-list"></div>
+  <div class="sec-label">Find Nearby</div>
+  <a href="#" id="maps-btn" target="_blank" class="action-btn" style="background:linear-gradient(135deg,#A01020,#600818);border-color:#FF3B4E;color:#fff">
+    📍 Open Map — Emergency Vet Near Me
+  </a>
+  <a href="https://www.google.com/search?q=24+hour+emergency+vet+near+me" target="_blank" class="action-btn" style="background:var(--bg2);border-color:var(--border);color:var(--muted)">
+    🔍 Search 24hr Emergency Vets
+  </a>
+  <a href="tel:18884267387" class="action-btn" style="background:#120A1A;border-color:#3A1540;color:#C480E0">
+    ☠️ ASPCA Poison Control — 1-888-426-7387
+  </a>
+  <a href="tel:18009871688" class="action-btn" style="background:#1A0A22;border-color:#4A1560;color:#BB80F0">
+    🐾 Pet Poison Helpline — 1-800-987-1688
+  </a>
+  <div class="travel-box">
+    <div class="travel-head">🚗 While Travelling to the Vet</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Keep your pet warm and as still as possible</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Do not give food or water unless your vet instructs you to</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Restrict movement if a fracture or spinal injury is suspected</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Note the exact time symptoms started and describe them clearly</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Bring any substances, plants, or objects your pet may have ingested</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Have someone else drive so you can monitor your pet</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Keep your pet's head elevated if they are vomiting</div>
+    <div class="travel-tip"><div class="travel-dot"></div>Use a blanket to prevent shock — even in warm weather</div>
+  </div>
+  <button class="nav-btn prev" style="width:100%;margin-top:16px" onclick="showTab('guide')">← Return to First Aid Steps</button>
+</div>
+
+<!-- ══ KIT SCREEN ══ -->
+<div id="screen-kit" class="screen">
+  <div class="guide-top">
+    <div style="font-family:var(--font-h);font-size:20px;font-weight:800">🧰 First Aid Kit</div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted2)" id="kit-score"></div>
+  </div>
+  <div class="page-sub">Tap items to check them off. A well-stocked kit saves precious time.</div>
+  <div class="kit-progress">
+    <div class="kit-prog-text" id="kit-prog-text">0 / 18 items ready</div>
+    <div class="progress-bar"><div class="progress-fill" id="kit-fill" style="width:0%"></div></div>
+  </div>
+  <div id="kit-list"></div>
+  <div id="kit-complete" style="display:none" class="kit-complete">🎉 Your kit is fully stocked! You're prepared for any emergency.</div>
+</div>
+
+<!-- ══ PROFILE SCREEN ══ -->
+<div id="screen-profile" class="screen">
+  <div class="guide-top">
+    <div style="font-family:var(--font-h);font-size:20px;font-weight:800">👤 Profile</div>
+  </div>
+  <div class="profile-card">
+    <div class="card-title">🐾 Your Pet</div>
+    <div class="field-row">
+      <label class="field-label">Pet's Name</label>
+      <input class="text-input" id="pet-name-input" placeholder="e.g. Buddy, Luna" />
+    </div>
+    <div class="field-row">
+      <label class="field-label">Breed / Notes</label>
+      <input class="text-input" id="pet-breed-input" placeholder="e.g. Labrador, 4 years old" />
+    </div>
+    <div class="field-row">
+      <label class="field-label">Medical Conditions / Allergies</label>
+      <input class="text-input" id="pet-conditions-input" placeholder="e.g. Epilepsy, allergic to penicillin" />
+    </div>
+  </div>
+  <div class="profile-card">
+    <div class="card-title">📞 Vet Contacts</div>
+    <div id="vet-contacts-list"></div>
+    <div class="input-row">
+      <input class="text-input" id="new-vet-name" placeholder="Vet / clinic name" style="flex:1" />
+      <input class="text-input" id="new-vet-phone" placeholder="Phone number" style="flex:1" />
+    </div>
+    <button class="add-vet-btn" onclick="addVet()">+ Add Vet</button>
+  </div>
+  <button class="save-btn" onclick="saveProfile()">✓ Save Profile</button>
+</div>
+
+<!-- VOICE-TO-VOICE OVERLAY -->
+<div id="vox-overlay" style="display:none" class="vox-overlay">
+  <div class="vox-title">🎙️ Voice Guide</div>
+  <div class="vox-sub">Ask anything about this emergency. Tap the orb to speak — I'll answer and guide you step by step.</div>
+  <div class="vox-orb" id="vox-orb" onclick="voxToggleListen()">🎙️</div>
+  <div class="vox-status" id="vox-status">Tap orb to speak</div>
+  <div class="vox-transcript" id="vox-transcript">Your question will appear here…</div>
+  <button class="vox-close" onclick="closeVox()">✕ Close Voice Mode</button>
+  <div class="vox-hint">Try: "What should I do first?" · "Is this critical?" · "Read step 3" · "How long does this take?"</div>
+</div>
+
+</div><!-- app wrapper -->
+</body>
+<script src="script.js"></script>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "petaid",
+  "version": "1.0.0",
+  "description": "🐾 PetAid - Emergency First Aid Guide for Pets. AI-powered real-time guidance for pet emergencies.",
+  "main": "frontend/index.html",
+  "scripts": {
+    "start": "open frontend/index.html"
+  },
+  "keywords": [
+    "pets",
+    "emergency",
+    "first-aid",
+    "dog",
+    "cat",
+    "vet",
+    "health"
+  ],
+  "author": "Greeshma",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/greeshmacreates/petaid.git"
+  }
+}
